@@ -84,13 +84,24 @@ app.post '/png', bodyParser.json(limit: payload_limit), ({body}, res) ->
     # combine arguments and call pdf compiler using shell
     # injection save function 'spawn' goo.gl/zspCaC
     # console.log(arg(body.options).concat(flow(remove(negate(last)), flatten)(files)).join(' '))
-    spawn 'wkhtmltoimage', (arg(body.options)
+    process = spawn 'wkhtmltoimage', (arg(body.options)
     .concat(flow(remove(negate(last)), flatten)(files)))
+
+    childProcess = process.childProcess
+    childProcess.stdout.on 'data', (data) ->
+      console.log '[spawn] stdout: ', data.toString()
+    childProcess.stderr.on 'data', (data) ->
+      console.log '[spawn] stderr: ', data.toString()
+
+    process
     .then ->
       res.setHeader 'Content-type', 'image/png'
       promisePipe fs.createReadStream(output), res
     # .catch -> res.status(BAD_REQUEST = 400).send 'invalid arguments'
-    .catch (err) -> res.status(BAD_REQUEST = 400).send err
+    .catch (err) ->
+      console.log err
+      res.status(BAD_REQUEST = 400)
+      res.send(err)
     .then -> map fs.unlinkSync, compact([output, content])
 
 app.listen process.env.PORT or 5555

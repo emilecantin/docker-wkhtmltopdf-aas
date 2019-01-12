@@ -7,7 +7,6 @@ RUN apt-get update && \
     libxrender1 xfonts-base xfonts-75dpi curl python-software-properties && \
     wget -q https://downloads.wkhtmltopdf.org/0.12/0.12.2.1/wkhtmltox-0.12.2.1_linux-trusty-amd64.deb && \
     dpkg -i wkhtmltox-0.12.2.1_linux-trusty-amd64.deb && \
-    rm /usr/local/bin/wkhtmltoimage && \
     curl -sL https://deb.nodesource.com/setup_8.x | bash - && \
     apt-get install -y nodejs
 
