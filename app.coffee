@@ -60,5 +60,38 @@ app.post '/', bodyParser.json(limit: payload_limit), ({body}, res) ->
     .catch -> res.status(BAD_REQUEST = 400).send 'invalid arguments'
     .then -> map fs.unlinkSync, compact([output, header, footer, content])
 
+app.post '/png', bodyParser.json(limit: payload_limit), ({body}, res) ->
+
+  decode = (base64) ->
+    Buffer.from(base64, 'base64').toString 'utf8' if base64?
+
+  tmpFile = (ext) ->
+    tmp.file(dir: '/tmp', postfix: '.' + ext).then (f) -> f.path
+
+  tmpWrite = (content) ->
+    tmpFile('html').then (f) -> fileWrite f, content if content?
+
+  # compile options to arguments
+  arg = flow(toPairs, flatMap((i) -> ['--' + first(i), last(i)]), compact)
+
+  parallel.join tmpFile('png'),
+  map(flow(decode, tmpWrite), [body.contents])...,
+  (output, content) ->
+    if(body.url)
+      files = [[body.url, output]]
+    else
+      files = [[content, output]]
+    # combine arguments and call pdf compiler using shell
+    # injection save function 'spawn' goo.gl/zspCaC
+    # console.log(arg(body.options).concat(flow(remove(negate(last)), flatten)(files)).join(' '))
+    spawn 'wkhtmltoimage', (arg(body.options)
+    .concat(flow(remove(negate(last)), flatten)(files)))
+    .then ->
+      res.setHeader 'Content-type', 'image/png'
+      promisePipe fs.createReadStream(output), res
+    # .catch -> res.status(BAD_REQUEST = 400).send 'invalid arguments'
+    .catch (err) -> res.status(BAD_REQUEST = 400).send err
+    .then -> map fs.unlinkSync, compact([output, content])
+
 app.listen process.env.PORT or 5555
 module.exports = app
